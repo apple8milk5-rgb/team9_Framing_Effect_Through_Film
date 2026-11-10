@@ -1,0 +1,9 @@
+platform
+time
+matplotlib.pyplot
+numpy
+requests
+streamlit
+bs4
+kiwipiepy
+transformers
