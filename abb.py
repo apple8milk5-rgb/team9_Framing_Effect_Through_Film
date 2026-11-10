@@ -3,6 +3,7 @@ import re
 import time
 import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import requests
 import streamlit as st
@@ -11,9 +12,9 @@ from kiwipiepy import Kiwi
 from transformers import pipeline
 
 
-# -------------------------------------------------------------
+#
 # 1. 환경 설정 및 모델/도구 로드
-# -------------------------------------------------------------
+#
 def set_korean_font():
     """운영체제별 한글 폰트 설정으로 시각화 시 한글 깨짐 방지"""
     system_name = platform.system()
@@ -39,9 +40,9 @@ def load_analysis_tools():
     return kiwi, sentiment_model
 
 
-# -------------------------------------------------------------
+#
 # 2. 데이터 수집 및 텍스트 정제
-# -------------------------------------------------------------
+#
 def fetch_text_from_url(url: str) -> str:
     """URL에 접근하여 HTML 태그를 제거하고 순수 본문 텍스트만 추출"""
     headers = {
@@ -52,7 +53,6 @@ def fetch_text_from_url(url: str) -> str:
     }
     response = requests.get(url, headers=headers, timeout=5)
     response.raise_for_status()
-
     soup = BeautifulSoup(response.text, "html.parser")
     for tag in soup(["script", "style", "header", "footer", "nav", "aside"]):
         tag.decompose()
@@ -72,11 +72,11 @@ def extract_keywords_kiwi(kiwi: Kiwi, text: str) -> list:
     return extracted_words
 
 
-# -------------------------------------------------------------
+#
 # 3. 감정 분석 로직
-# -------------------------------------------------------------
+#
 def analyze_sentiment_with_ai(
-    sentiment_model, extracted_words: list
+        sentiment_model, extracted_words: list
 ) -> tuple[float, float, str]:
     """수집된 단어들을 묶어 AI 모델로 전달하고 긍정/부정 확률 계산"""
     if not extracted_words:
@@ -88,7 +88,6 @@ def analyze_sentiment_with_ai(
 
     pos_score = 0.0
     neg_score = 0.0
-
     for item in raw_result:
         label = item["label"].lower()
         if "pos" in label or label == "1":
@@ -108,17 +107,16 @@ def analyze_sentiment_with_ai(
     return pos_percent, neg_percent, verdict
 
 
-# -------------------------------------------------------------
+#
 # 4. 파이프라인 및 시각화
-# -------------------------------------------------------------
+#
 def run_collection_pipeline(
-    targets: list, kiwi: Kiwi, sentiment_model
+        targets: list, kiwi: Kiwi, sentiment_model
 ) -> list:
     """URL별 크롤링, 형태소 추출, 감정 분석을 실행하고 상태를 업데이트"""
     results = []
     total = len(targets)
     accumulated_words = 0
-
     progress_bar = st.progress(0)
 
     with st.status("플랫폼별 데이터 수집 및 분석 진행 중...", expanded=True) as status:
@@ -150,7 +148,7 @@ def run_collection_pipeline(
                     }
                 )
                 st.write(
-                    f"- {platform_name} 완료 | 누적 단어: {accumulated_words}개 수집"
+                    f"✔ {platform_name} 완료 | 누적 단어: {accumulated_words}개 수집"
                 )
             except Exception as e:
                 results.append(
@@ -165,7 +163,7 @@ def run_collection_pipeline(
                         "반응판정": "판정불가",
                     }
                 )
-                st.write(f"- {platform_name} 실패: {str(e)}")
+                st.write(f"✖ {platform_name} 실패: {str(e)}")
 
             progress_bar.progress((idx + 1) / total)
             time.sleep(0.3)
@@ -178,10 +176,7 @@ def run_collection_pipeline(
 def render_sentiment_pie_charts(data_list: list):
     """사이트별 긍정/부정 비율을 개별 원형 차트로 시각화"""
     set_korean_font()
-
-    valid_items = [
-        item for item in data_list if item["수집상태"] == "성공"
-    ]
+    valid_items = [item for item in data_list if item["수집상태"] == "성공"]
     if not valid_items:
         st.write("시각화할 성공 데이터가 없습니다.")
         return
@@ -193,7 +188,6 @@ def render_sentiment_pie_charts(data_list: list):
         with cols[idx]:
             labels = ["긍정", "부정"]
             sizes = [item["긍정비율(%)"], item["부정비율(%)"]]
-
             fig, ax = plt.subplots(figsize=(4, 4))
             ax.pie(
                 sizes,
@@ -211,13 +205,60 @@ def render_sentiment_pie_charts(data_list: list):
             plt.close(fig)
 
 
-# -------------------------------------------------------------
-# 5. 메인 UI 화면
-# -------------------------------------------------------------
+def render_sentiment_bar_chart(data_list: list):
+    """플랫폼별 긍정 및 부정 비율을 비교하는 막대그래프 시각화 (색상 구분)"""
+    set_korean_font()
+    valid_items = [item for item in data_list if item["수집상태"] == "성공"]
+    if not valid_items:
+        return
+
+    platforms = [item["플랫폼"] for item in valid_items]
+    pos_rates = [item["긍정비율(%)"] for item in valid_items]
+    neg_rates = [item["부정비율(%)"] for item in valid_items]
+
+    x = np.arange(len(platforms))
+    width = 0.35  # 막대 너비
+
+    fig, ax = plt.subplots(figsize=(8, 4.5))
+
+    # 긍정 막대(파란색 계열), 부정 막대(빨간색 계열) 생성
+    rects1 = ax.bar(x - width / 2, pos_rates, width, label="긍정", color="#4A90E2")
+    rects2 = ax.bar(x + width / 2, neg_rates, width, label="부정", color="#FF6B6B")
+
+    ax.set_ylabel("비율 (%)", fontsize=11)
+    ax.set_title("플랫폼별 긍정 vs 부정 반응 비교", fontsize=14, pad=15)
+    ax.set_xticks(x)
+    ax.set_xticklabels(platforms, fontsize=11)
+    ax.set_ylim(0, 110)
+    ax.legend(frameon=True)
+    ax.grid(axis="y", linestyle="--", alpha=0.5)
+
+    # 막대 위에 값 레이블 표시
+    def autolabel(rects):
+        for rect in rects:
+            height = rect.get_height()
+            ax.annotate(
+                f"{height:.1f}%",
+                xy=(rect.get_x() + rect.get_width() / 2, height),
+                xytext=(0, 3),
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                fontsize=9,
+            )
+
+    autolabel(rects1)
+    autolabel(rects2)
+
+    st.pyplot(fig)
+    plt.close(fig)
+
+
+#
+# 5. 메인 화면
+#
 def main():
-    st.set_page_config(
-        page_title="호프 반응 분석 시스템", layout="wide"
-    )
+    st.set_page_config(page_title="호프 반응 분석 시스템", layout="wide")
     st.title("호프 반응의 플랫폼별 반응 분석")
 
     kiwi, sentiment_model = load_analysis_tools()
@@ -257,7 +298,7 @@ def main():
         # 탭 구성
         tab1, tab2 = st.tabs(["감정 분석 결과", "전체 데이터 요약"])
 
-        # 탭 1 배치: 감성 단어 영역 -> 감성 점수 계산 -> 시각화
+        # 탭 1: 감성 단어 영역 > 감성 점수 계산 > 시각화(원형 및 비교 막대그래프)
         with tab1:
             # 1. 감성 단어 영역
             st.subheader("1. 본문 수집 감성 주요 단어")
@@ -274,7 +315,6 @@ def main():
                     )
                 else:
                     st.error(f"[{item['플랫폼']}] 수집 실패로 단어 표시 불가")
-
             st.divider()
 
             # 2. 감성 점수 계산 영역
@@ -292,11 +332,15 @@ def main():
                 use_container_width=True,
                 hide_index=True,
             )
-
             st.divider()
 
-            # 3. 시각화 영역 (원형 그래프 개별 생성)
+            # 3. 시각화 영역 (원형 차트 및 플랫폼 비교 막대그래프)
             st.subheader("3. 플랫폼별 감성 분포 시각화")
+
+            st.markdown("#### 플랫폼별 비교 막대그래프")
+            render_sentiment_bar_chart(analysis_data)
+
+            st.markdown("#### 플랫폼별 세부 원형 차트")
             render_sentiment_pie_charts(analysis_data)
 
         with tab2:
