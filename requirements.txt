@@ -1,9 +1,13 @@
 platform
+re
 time
+urllib.parse
 matplotlib.pyplot
 numpy
-requests
+pandas
 streamlit
+torch
 bs4
 kiwipiepy
+playwright.sync_api
 transformers
