@@ -45,7 +45,7 @@ def load_kiwi():
 
 
 # ----------------------------------------------------
-# 2. 데이터 수집 함수
+# 2. 데이터 수집 함수 (50개 수집)
 # ----------------------------------------------------
 def extract_video_id(url: str) -> str:
     """유튜브 URL에서 비디오 ID 추출"""
@@ -61,9 +61,9 @@ def extract_video_id(url: str) -> str:
 
 
 def get_video_comments(
-    api_key: str, video_id: str, max_results: int = 20
+    api_key: str, video_id: str, max_results: int = 50
 ) -> list:
-    """YouTube Data API v3를 호출하여 영상 댓글 수집"""
+    """YouTube Data API v3를 호출하여 영상 댓글 수집 (기본 50개)"""
     youtube = build("youtube", "v3", developerKey=api_key)
     response = (
         youtube.commentThreads()
@@ -145,7 +145,7 @@ def analyze_dataframe_sentiment(
 # 4. 시각화 함수
 # ----------------------------------------------------
 def draw_sentiment_pie(df: pd.DataFrame, title: str):
-    """영상별 감정 비율 원형 그래프 시각화"""
+    """영상별 감정 비율 원형 그래프 시각화 (수집된 50개 전체 데이터 기준 통계)"""
     counts = df["감정"].value_counts()
     pos_count = counts.get("긍정", 0)
     neg_count = counts.get("부정", 0)
@@ -238,8 +238,9 @@ def main():
                 )
 
                 try:
+                    # 각 영상당 최대 50개 댓글 수집
                     comments = get_video_comments(
-                        api_key, vid, max_results=20
+                        api_key, vid, max_results=50
                     )
                     count = len(comments)
                     total_accumulated += count
@@ -275,24 +276,24 @@ def main():
             tab1, tab2 = st.tabs(["감정 분석 결과", "수집 데이터 원본"])
 
             with tab1:
-                # 1. 감성 단어 영역
-                st.subheader("1. 본문 수집 단어 및 감정 판별")
+                # 1. 감성 단어 영역 (각 영상별 상위 20개만 미리보기 출력)
+                st.subheader("1. 본문 수집 단어 및 감정 판별 (상위 20개 미리보기)")
                 for label, df in collected_data.items():
-                    st.write(f"[{label}]")
+                    st.write(f"[{label}] (수집된 {len(df)}개 중 20개 표시)")
                     st.dataframe(
-                        df[["댓글 내용", "추출 단어", "감정", "감성 점수"]],
+                        df[["댓글 내용", "추출 단어", "감정", "감성 점수"]].head(20),
                         use_container_width=True,
                     )
 
-                # 2. 감성 점수 계산 영역
-                st.subheader("2. 감성 점수 계산 요약")
+                # 2. 감성 점수 계산 영역 (수집된 50개 전체 기준 통계)
+                st.subheader("2. 감성 점수 계산 요약 (전체 데이터 기준)")
                 summary_list = []
                 for label, df in collected_data.items():
                     summary_list.append(
                         {
                             "영상": label,
-                            "전체 수집 수": len(df),
-                            "평균 점수": round(df["감성 점수"].mean(), 2),
+                            "수집 댓글 수": len(df),
+                            "평균 감성 점수": round(df["감성 점수"].mean(), 2),
                             "긍정 댓글 수": (df["감정"] == "긍정").sum(),
                             "부정 댓글 수": (df["감정"] == "부정").sum(),
                         }
@@ -301,7 +302,7 @@ def main():
                     pd.DataFrame(summary_list), use_container_width=True
                 )
 
-                # 3. 시각화 영역
+                # 3. 시각화 영역 (전체 댓글 기준 원형 그래프)
                 st.subheader("3. 영상별 감정 분석 원형 그래프")
                 cols = st.columns(len(collected_data))
                 for col, (label, df) in zip(cols, collected_data.items()):
@@ -309,9 +310,10 @@ def main():
                         draw_sentiment_pie(df, f"{label} 감정 비율")
 
             with tab2:
+                # 원본 탭에서도 20개 미리보기 표기
                 for label, df in collected_data.items():
-                    st.write(f"[{label}] 원본 데이터")
-                    st.dataframe(df, use_container_width=True)
+                    st.write(f"[{label}] 원본 데이터 (상위 20개 미리보기)")
+                    st.dataframe(df.head(20), use_container_width=True)
 
 
 if __name__ == "__main__":
