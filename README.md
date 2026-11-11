@@ -1,5 +1,8 @@
-# team9_platform-sentiment-analysis
-프로젝트 소개: 최근 영화나 드라마와 같은 대중문화 콘텐츠에 대한 대중의 의견이 점점 더 다양한 온라인 플랫폼과 매체를 통해 공유 및 확산되고 있는 추세이다. 특히 동일한 콘텐츠라도 플랫폼 별로 이용자의 특성과 소통 방식 등에 따라 긍정 및 부정 반응의 비율, 감정 표현의 강도가 다르게 나타날 수 있다. 이에 영화 호프를 소재로 플랫폼별 반응을 살펴보고자 한다.
+# team9_Framing_Effect_Through_Film
+프로젝트 소개: 2026년 7월 15일에 개봉한 영화 <호프(HOPE)>를 다룬 서로 다른 성격의 유튜브 영상 3가지, 즉 공식 예고편과 긍정 리뷰 및 부정 리뷰에 달린 댓글을 분석하고 해당 데이터들을 시각화함으로써 영상 전달 방식이 영화 감상자들의 여론 형성과 감상평에 영향을 미치는 심리학적 현상을 보여주는 것이 주요 목표이다. 이를 통해 동일한 문화 콘텐츠를 소비하더라도 대중이 접하는 정보의 프레임과 논조에 따라 작품에 대한 평가 기준, 감정 반응, 담론의 방향성이 극단적으로 갈릴 수 있음을 데이터로 나타내고자 한다.
 팀원: 김나영, 김은진, 정다솜
 실행 방법: streamlit run abb.py
-사용 라이브러리: platform, time, matplotlib.pyplot, numpy, requests, streamlit, bs4, kiwipiepy, transformers
+사용 라이브러리: streamlit, pandas, google-api-python-client, kiwipiepy, matplotlib, transformers, torch
+앱 실행 화면: <img width="1837" height="965" alt="실행화면3" src="https://github.com/user-attachments/assets/a51f889a-87c4-42ef-a48f-5d72a889cb63" />
+<img width="1897" height="955" alt="샐행화면2" src="https://github.com/user-attachments/assets/ae21ab5a-5709-434a-aca2-198d87011bca" />
+<img width="1867" height="957" alt="실행화면" src="https://github.com/user-attachments/assets/067365c9-82f3-46d8-8414-bd430c443ef1" />
