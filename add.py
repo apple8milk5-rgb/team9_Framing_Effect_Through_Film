@@ -45,7 +45,7 @@ def load_kiwi():
 
 
 # ----------------------------------------------------
-# 2. 데이터 수집 함수 (50개 수집)
+# 2. 데이터 수집 함수 (50개 수집 및 작성자 익명화)
 # ----------------------------------------------------
 def extract_video_id(url: str) -> str:
     """유튜브 URL에서 비디오 ID 추출"""
@@ -63,7 +63,7 @@ def extract_video_id(url: str) -> str:
 def get_video_comments(
     api_key: str, video_id: str, max_results: int = 50
 ) -> list:
-    """YouTube Data API v3를 호출하여 영상 댓글 수집 (기본 50개)"""
+    """YouTube Data API v3를 호출하여 댓글 수집 및 작성자 user_001 형태로 익명화"""
     youtube = build("youtube", "v3", developerKey=api_key)
     response = (
         youtube.commentThreads()
@@ -77,11 +77,12 @@ def get_video_comments(
         .execute()
     )
     comments = []
-    for item in response.get("items", []):
+    # user_001, user_002 형식으로 순차적 익명화
+    for idx, item in enumerate(response.get("items", []), start=1):
         snippet = item["snippet"]["topLevelComment"]["snippet"]
         comments.append(
             {
-                "작성자": snippet.get("authorDisplayName", ""),
+                "작성자": f"user_{idx:03d}",
                 "댓글 내용": snippet.get("textDisplay", ""),
                 "좋아요 수": snippet.get("likeCount", 0),
                 "작성일": snippet.get("publishedAt", ""),
@@ -145,7 +146,7 @@ def analyze_dataframe_sentiment(
 # 4. 시각화 함수
 # ----------------------------------------------------
 def draw_sentiment_pie(df: pd.DataFrame, title: str):
-    """영상별 감정 비율 원형 그래프 시각화 (수집된 50개 전체 데이터 기준 통계)"""
+    """영상별 감정 비율 원형 그래프 시각화"""
     counts = df["감정"].value_counts()
     pos_count = counts.get("긍정", 0)
     neg_count = counts.get("부정", 0)
@@ -310,7 +311,7 @@ def main():
                         draw_sentiment_pie(df, f"{label} 감정 비율")
 
             with tab2:
-                # 원본 탭에서도 20개 미리보기 표기
+                # 원본 탭에서도 20개 미리보기 표기 (작성자 컬럼은 user_001 형식으로 표시)
                 for label, df in collected_data.items():
                     st.write(f"[{label}] 원본 데이터 (상위 20개 미리보기)")
                     st.dataframe(df.head(20), use_container_width=True)
